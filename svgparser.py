@@ -1,4 +1,4 @@
-from itertools import accumulate, repeat
+from itertools import repeat
 import re
 from xml.dom import minidom
 
@@ -49,7 +49,7 @@ def extract_points(pth, curr_pos=[0., 0.]):
     for i in re.finditer(COMMAND, pth):
         node, coords = i.groups()
         coords = parse_coords(coords)
-
+        #print(node,coords)
         relative, node = node.islower(), node.lower()
 
         if node in "m":  # only one coord so exit as you should
@@ -64,32 +64,37 @@ def extract_points(pth, curr_pos=[0., 0.]):
         curr_pos = coordinates[-1]
 
         if node in 'hvl':  # linear segments only
-            # FIXME what if there's only one coord? see acute -- weird flipping behaviour
 
-            if type(coords) == float:
+            # prevent one single (x,y)-segment of "l" from being treated like a couple of "h"/"v"s and one value of "h"/"v"
+            # from being treated as a list and throwing an error
+            if node in 'l' and type(coords[0]) == float or node in 'hv' and type(coords) == float:
                 coords = [coords]
-                #breakpoint()
-            if type(coords[0]) == float:
-                alignment = 0 if node == 'h' else 1  # h: (x, 0); v: (0, y)
-                missing_axis = 0.0 if relative else curr_pos[alignment]
-                second = repeat(missing_axis, len(coords))
 
+            if node in 'hv':
+                alignment = 1 if node == 'h' else 0  # h: ( 1, _ ); v: ( _ , 1)
+                missing_axis = 0.0 if relative else curr_pos[alignment]
+
+                second = repeat(missing_axis, len(coords))
                 coords = map(list, zip(coords, second))  # "h" only lists x -> add other axis with previous value
-                if alignment:  # flip the axis for "v" - we already made sure the value is right in "missing_axis"
+
+                if not alignment:  # flip the axis for "v" - we already made sure the value is right in "missing_axis"
                     coords = [c[::-1] for c in coords]
 
             if relative:
                 try:
                     [coordinates.append([x + y for x, y in zip(coordinates[-1], c)]) for c in coords]
                 except TypeError:
-                    breakpoint()
+                    # print('OOPSIE')
+                    # breakpoint()
+                    pass
             else:
                 [coordinates.append(c) for c in coords]
         elif node in 'z':
             continue
 
+    coordinates.append(coordinates[0]) # Connect the last dots
     # Flip the y axis https://jenkov.com/tutorials/svg/svg-coordinate-system.html - NVM, CAN BE DONE IN MATPLOTLIB
-    #coordinates = [[c[0], -c[1]] for c in coordinates]
+    # coordinates = [[c[0], -c[1]] for c in coordinates]
     return np.asarray(coordinates)
 
 
@@ -98,7 +103,7 @@ def path_to_points(pth):
     cmds = re.findall(NODES, pth)  # e.g. ['m', 'v', 'l', 'h', 'l', 'L', 'h', 'l', 'h', 'l', 'H', 'l', 'z', 'm', 'h', 'l', 'z']
 
     if set([e.lower() for e in cmds]).intersection('csqta'):
-        raise NotImplementedError('Curve-based nodes are not supported') #print("Not implemented")
+        raise NotImplementedError('Curve-based nodes are not supported')
 
     data_points = []
 
@@ -123,7 +128,7 @@ def path_to_points(pth):
             subpath = pth.pop(0)
             last_point = [0., 0.]
             if subpath[0].islower() and data_points:
-                last_point = data_points[-1][-1]  # if one of subsequent paths starts with a relative move, we need last coordinate from the previous path
+                last_point = data_points[-1][-1]  # if one of subsequent paths starts with a relative moveto, we need last coordinate from the previous path
             data_points.append(extract_points(subpath, last_point))
 
     return data_points
