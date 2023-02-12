@@ -1,16 +1,21 @@
-# This is a sample Python script.
+import svgparser as svgp
 
-# Press Umschalt+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Strg+8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
+# TODO SEE https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d: also applicable to glyphs
 if __name__ == '__main__':
-    print_hi('PyCharm')
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    pth, props = svgp.parse_svg("test_assets/a500.svg")
+    data_points = svgp.path_to_points(pth[0])
+
+    from matplotlib import pyplot as plt
+
+    viewbox = [55.76775, 87.166107]
+    ratio = (viewbox[0]/viewbox[1])
+    fSize = (2*ratio, 2 )
+    fig = plt.figure(figsize=fSize,dpi=100)  # ,figsize = ...
+
+    for d in data_points:
+        plt.plot(d[:, 0], d[:, 1])
+
+    plt.gca().invert_yaxis()
+    plt.show()
+    # fig.savefig('test.png')
