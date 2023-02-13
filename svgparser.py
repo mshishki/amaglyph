@@ -10,7 +10,7 @@ NODES = re.compile(r'[mlvhcsqtaz]', flags=FLAGS)
 COMMAND = re.compile(r'(?P<node>[mlvhcsqta])\s?(?P<coords>[+-]?[+\-\d,.\s[e\-\d]*]*)\s', flags=FLAGS)
 
 
-def parse_svg(path_to_file):  # TODO log "transform" if present; include cases for paths within layers and for standalone paths
+def parse_svg(path_to_file):  # TODO include cases for paths within layers and for standalone paths
     with minidom.parse(path_to_file) as doc:
         svg = doc.getElementsByTagName("svg")[0]
 
