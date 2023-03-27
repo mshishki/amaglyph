@@ -2,6 +2,8 @@ import numpy as np
 from casteljau import flatten_curve
 from matplotlib import pyplot as plt
 import svgparser as svgp
+from itertools import combinations
+from typing import overload, Union
 
 
 def slope(p1, p2):
@@ -24,7 +26,7 @@ def convex_hull(pts):
     h.append(points[0])
     points = np.delete(points, 0, axis=0)
 
-    # Sort remaining points in counterclockwise order by their slope
+    # Sort remaining points in counterclockwise order by their slope (note: will be shown as clockwise in matplotlib bc we flipped the y axis)
     points = np.array(sorted(points, key=lambda pt: (slope(pt, h[0]), -pt[1], pt[0])))
 
     for p in points:
@@ -55,33 +57,56 @@ def polygon_area(contour):
     return area
 
 
-if __name__ == "__main__":
-    # TODO: Jarvis march? Could be useful depending on the hull https://en.wikipedia.org/wiki/Gift_wrapping_algorithm
-    pth, props = svgp.parse_svg("test_assets/a_rough.svg")
-    curve_points = svgp.path_to_points(pth[0])[0]
+def euclidean(p1, p2):
+    # Euclidean distance is the L2 norm: numpy.linalg.norm(a-b)
+    # https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
+    return np.linalg.norm(p2 - p1)
 
-    hull = convex_hull(curve_points)
 
-    a = polygon_area(curve_points)
-    a_hull = polygon_area(hull)
+def euclidean_all(data_points):
+    # https://stackoverflow.com/questions/13590484/calculating-euclidean-distance-between-consecutive-points-of-an-array-with-numpy
+    # compute the deltas from vectorized points
+    d = np.diff(data_points, axis=0)
+    # np.hypot to compute the lengths:
+    return np.hypot(d[:, 0], d[:, 1])
 
-    vb = props["viewBox"]
-    magnify = 3
-    vb = [vb[2] - vb[0], vb[3] - vb[1]]
-    ratio = vb[0] / vb[1]  # print(ratio)
-    fSize = (magnify * ratio, magnify) if ratio < 1 else (magnify, magnify * ratio)
-    
-    fig = plt.figure(dpi=100, figsize=fSize)
-    ax = fig.add_subplot(1, 1, 1)
 
-    plt.plot(curve_points[:, 0], curve_points[:, 1], linestyle='-', linewidth=1, color="orange")  # , marker="o", markersize=3, markerfacecolor='w')  # markersize = 99,
-    ax.fill(curve_points[:, 0], curve_points[:, 1], color="orange")
-    plt.plot(hull[:, 0], hull[:, 1], linestyle='-', linewidth=2, marker="x", color="b", markeredgecolor="k")  # , marker="o", markersize=3, markerfacecolor='w')  # markersize = 99,
+def get_perimeter(data_points):
+    # contour perimeter, or arc length
+    return np.sum(euclidean_all(data_points))  # (a, b) for a, b in zip(data_points[:-1], data_points[1:])])
 
-    plt.box(False)
-    ax.axis('equal')
-    ax.axis('off')
-    plt.gca().invert_yaxis()
-    plt.autoscale()
-    plt.tight_layout(pad=0.0)
-    fig.show()
+
+def get_curvature(points):  # p1,p2,p3):
+    # #https://stackoverflow.com/questions/41144224/calculate-curvature-for-3-points-x-y
+
+    # Calculating length of all three sides
+    sides = [euclidean(*p_) for p_ in combinations(points, 2)]
+    # len_side_1 = np.linalg.norm(p2 - p1)
+    # len_side_2 = np.linalg.norm(p3 - p2)
+    # len_side_3 = np.linalg.norm(p3 - p1)
+
+    # Calculating area using Herons formula
+    #     sp = (len_side_1 + len_side_2 + len_side_3) / 2  # semiperimeter
+    #    area = math.sqrt(sp * (sp - len_side_1) * (sp - len_side_2) * (sp - len_side_3))
+
+    area = polygon_area(points)
+
+    # Calculating curvature using Menger curvature formula
+    curvature = (4 * area) / np.prod(sides)  # (len_side_1 * len_side_2 * len_side_3)
+
+    return curvature, area
+
+
+def perpendicular_distance(pt, start, end):
+    """ Calculate perpendicular distance between vectors -> vector rejection of a on b """
+    b = end - start  # vector AB = b - a
+    a = end - pt  # vector AC = c - a # a = end - pt
+
+    # distance can be expressed via cross-product ||a x b|| = ||a|| ||b|| ||sin(theta)||
+    # easier than first calculating delta y or delta x since we don't need to make theta-based distinction of axes etc etc
+    num = np.linalg.norm(np.cross(b, a))  # cross-product of vectors = magnitude
+    den = np.linalg.norm(b)
+    # if pos > 140:
+    #    print(f"{pos}: {num}/{den}, {num/den}")
+    return num / den
+
