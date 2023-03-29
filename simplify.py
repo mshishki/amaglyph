@@ -40,8 +40,7 @@ def visvalingam(data_points, keep_amount=None):
         curr_points = data_points[i - 1:i + 2]
         area = g.polygon_area(curr_points)
         areas.append(area)
-        # indices.append(i)
-        print(i, area, curr_points[1])
+        # print(i, area, curr_points[1])
 
     if not keep_amount:
         # determine amount of critical points from their distribution (the 5% largest areas must belong to corners)
@@ -75,36 +74,39 @@ if __name__ == '__main__':
     optimized2 = []
 
     for p in path:
-        optimized.append(ramer(p, 1))
+        optimized.append(rdp(p, 1))
         optimized2.append(visvalingam(p))
-        print("lengths:", len(p), len(optimized[-1]), len(optimized2[-1]))
-    # print(len(optimized[0]))
+        #print("lengths:", len(p), len(optimized[-1]), len(optimized2[-1]))
+
     from matplotlib import pyplot as plt
 
-    vb = vector_image.dimensions
-    magnify = 5
-    vb = [vb[2] - vb[0], vb[3] - vb[1]]
-    ratio = vb[0] / vb[1]  # print(ratio)
-    fSize = (magnify * ratio, magnify) if ratio < 1 else (magnify, magnify * ratio)
+    fig, ax = plt.subplots(1, 2, constrained_layout=True, sharey='col')
 
-    fig = plt.figure(dpi=100, figsize=fSize)
-    ax = fig.add_subplot(1, 1, 1)
     plt.box(False)
-    ax.axis('equal')
-    ax.axis('off')
-    plt.gca().invert_yaxis()
-    plt.autoscale()
-    plt.tight_layout(pad=0.0)
-    ct = 0
+    for a in ax:
+        a.set_aspect('equal', 'box')
+        a.axis('off')
+        a.invert_yaxis()  # axis('off')
 
     for i_, (p, r, v) in enumerate(zip(path, optimized, optimized2)):
-        plt.plot(p[:, 0], p[:, 1], linestyle='-', linewidth=2, color="orange")
+        ax[0].plot(p[:, 0], p[:, 1], linestyle='-', linewidth=2, color="orange")
         clr = "white" if i_ in path_data.holes else "beige"
-        ax.fill(p[:, 0], p[:, 1], color=clr)
+        ax[0].fill(p[:, 0], p[:, 1], color=clr)
+        ax[0].plot(r[:, 0], r[:, 1], linestyle='--', linewidth=1, marker="x", color="brown", \
+                   markeredgecolor="brown", markerfacecolor="brown", markersize=5)
 
-        plt.plot(r[:, 0], r[:, 1], linestyle='--', linewidth=1, marker=".", color="brown", markeredgecolor="brown", markerfacecolor="brown",
-                 markersize=5)  # , marker="o", markersize=3, markerfacecolor='w')  # markersize = 99,
-        plt.plot(v[:, 0], v[:, 1], linestyle='--', linewidth=1, marker=".", color="blue", markeredgecolor="blue", markerfacecolor="blue",
-                 markersize=5)  # , marker="o", markersize=3, markerfacecolor='w')  # markersize = 99,
+        ax[1].plot(p[:, 0], p[:, 1], linestyle='-', linewidth=2, color="cornflowerblue")  # steelblue")
+        clr = "white" if i_ in path_data.holes else "skyblue"
+        ax[1].fill(p[:, 0], p[:, 1], color=clr)
+        ax[1].plot(v[:, 0], v[:, 1], linestyle='-.', linewidth=1, marker="x", color="blue", \
+                   markeredgecolor="midnightblue", markerfacecolor="blue", markersize=5)
+
+    fig.suptitle('Line simplification: Results', fontsize=30)
+    ax[0].set_title(f'{sum([len(o) for o in optimized])} pts')
+    ax[0].text(0.5, -0.1, 'Ramer-Douglas-Peucker', size=15, ha="center", transform=ax[0].transAxes)
+    ax[1].set_title(f'{sum([len(o) for o in optimized2])} pts')
+    ax[1].text(0.5, -0.1, 'Visvalingam-Whyatt', size=15, ha="center", transform=ax[1].transAxes)
+
+    plt.tight_layout(pad=0.0)
 
     fig.show()
