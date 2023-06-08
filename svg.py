@@ -33,7 +33,6 @@ class SVGDocument:
             # TODO parse attrs from svg.attributes.items() like width, height, viewBox; from svg.children: 'namedview''inkscape:document-units', 'pt'),
             attrs = dict(svg.attributes.items())
             self.dimensions = [float(coord) for coord in attrs['viewBox'].split(" ")]
-            #dimensions['viewBox'] = [float(coord) for coord in dimensions['viewBox'].split(" ")]
             # We work with one path and assume there will be one path and one path only
             path_dict = dict(svg.getElementsByTagName('path')[0].attributes.items())
 
@@ -42,28 +41,15 @@ class SVGDocument:
                 for pe in svg.getElementsByTagName('inkscape:path-effect'):
                     attrs = dict(pe.attributes.items())
                     if attrs['effect'] == 'roughen' and path_id in attrs.values():   # any([at in path_id for at in attrs.values()]):  # attrs['id'] = 'path-effect2437', without the octothorp
-                        # print("Morphed Shape")
-
                         # create MorphedShape, pass path and attrs
                         self.shape = SVGShape(path_dict, attrs)
                         break
-                    #morph_defs = [c for c in svg.childNodes.getElementsByTagName("defs") if c.childNodes]
             else:
                 self.shape = SVGShape(path_dict)
-            # self.contents = svg
 
     def path(self, original=False):
-        # TODO
+        # TODO distinction
         return self.shape.path
 
     def get_path(self):
         return self.shape.path
-
-    def write_image(self):
-        pass
-
-    def write_xml(self):
-        pass
-
-
-#if __name__ == '__main__':

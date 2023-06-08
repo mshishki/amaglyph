@@ -4,8 +4,10 @@ from dataclasses import dataclass, field
 from itertools import repeat
 import geometry as g
 from matplotlib.path import Path as mplpath
-#import matplotlib.path
+# import matplotlib.path
+import simplify
 from itertools import chain
+from benchmark import timeit
 
 # Regex helpers
 FLAGS = re.IGNORECASE
@@ -20,20 +22,12 @@ class Path:
     compound: bool = False
     holes: set[int] = ()
 
-    """class Subpath:
-        data: list
-        perimeter: float
-        convex_hull: list  # pass"""
-
-    """def __init__(self, path):
-        self.path = path
-        # points = svgp.path_to_points(pth[1], "dist")[0]
-        self.data = path_to_points(path)"""
-
     def __post_init__(self):
         self.path_to_points(self.path)
         if self.compound:
             self.holes = self.check_holes()
+        self.data = self.rearrange()
+        #    path = lower_precision(path, 5)
 
     def check_holes(self):
         """ Check if compound path has holes, aka contours nested within contours that won't need to be filled in visualisation.
@@ -45,7 +39,7 @@ class Path:
             hull = g.convex_hull(d)
             cvhs[i] = hull
         # sort conv hulls by area - the largest contour may contain lesser ones
-        #cvhs = [(k, v['hull']) for k, v in sorted(cvhs.items(), key=lambda x: -x[1]['area'])]
+        # cvhs = [(k, v['hull']) for k, v in sorted(cvhs.items(), key=lambda x: -x[1]['area'])]
         cvhs = [(k, v) for k, v in sorted(cvhs.items(), key=lambda x: g.polygon_area(x[1]), reverse=True)]
         for i, (path_id, hl) in enumerate(cvhs[:-1]):
             if i < len(cvhs) - 1 and path_id not in self.holes:  # no double nesting
@@ -53,7 +47,6 @@ class Path:
                 holes.append(*[p[0] for p in cvhs[i + 1:] if all(curr_path.contains_points(p[1]))])
         return set(holes)
 
-    # FIXME rescale, rearrange, round: different implementation for Morphed Paths? (apply to both)
     def rearrange(self):
         return [rearrange(p) for p in self.data]
 
@@ -102,6 +95,15 @@ class Path:
                 data_points.append(extract_points(subpath, last_point))
 
         self.data = data_points
+
+    @timeit
+    def simplify_rdp(self, alpha=1):
+        return [simplify.rdp(p, alpha) for p in self.data]
+
+    @timeit
+    def simplify_vw(self, keep_amount=None):
+        # subpaths = []
+        return [simplify.visvalingam(p, keep_amount) for p in self.data]
 
 
 class MorphedPath(Path):
@@ -170,15 +172,11 @@ def extract_points(pth, curr_pos=[0., 0.]):
                 try:
                     [coordinates.append([x + y for x, y in zip(coordinates[-1], c)]) for c in coords]
                 except TypeError:
-                    # print('OOPSIE')
-                    # breakpoint()
                     pass
             else:
                 [coordinates.append(c) for c in coords]
 
     coordinates.append(coordinates[0])  # Connect the last dots
-    # Flip the y axis https://jenkov.com/tutorials/svg/svg-coordinate-system.html - NVM, CAN BE DONE IN MATPLOTLIB
-    # coordinates = [[c[0], -c[1]] for c in coordinates]
     return np.asarray(coordinates)
 
 
@@ -201,19 +199,3 @@ def rescale(paths, method='distance'):
 
 def lower_precision(paths, precision=5):
     return [np.round(p, precision) for p in paths]
-
-
-"""if __name__ == '__main__':
-    print("")
-    first = np.lexsort(points.T[::-1])[0]
-    new_points = points[:first]
-    # new_indices = [range(first, len(points))]
-    # https://stackoverflow.com/questions/2828059/sorting-arrays-in-numpy-by-column #https://stackoverflow.com/questions/29352511/numpy-sort-ndarray-on-multiple-columns #https://stackoverflow.com/questions/2828059/sorting-arrays-in-numpy-by-column
-    # print(pts[0])
-    # pts2 = points[np.lexsort((-points[:,1], points[:,0]))]
-    pts2 = np.lexsort((-points[:, 1], points[:, 0]))[0]
-    points[pts2]
-
-    from itertools import chain
-
-    o = list(chain(range(first, len(points)), range(first)))  # list(range(first, len(points))) + list(range(first))"""

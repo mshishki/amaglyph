@@ -1,9 +1,5 @@
 import numpy as np
-from casteljau import flatten_curve
-from matplotlib import pyplot as plt
-import svgparser as svgp
 from itertools import combinations
-from typing import overload, Union
 
 
 def slope(p1, p2):
@@ -15,7 +11,7 @@ def slope(p1, p2):
 
 
 def convex_hull(pts):
-    """Graham scan"""  # https://lvngd.com/blog/convex-hull-graham-scan-algorithm-python/ https://medium.com/@pascal.sommer.ch/a-gentle-introduction-to-the-convex-hull-problem-62dfcabee90c
+    """Graham scan"""
     points = pts.copy()
     h = []
 
@@ -37,8 +33,6 @@ def convex_hull(pts):
         # cross == 0: three points are collinear
         while len(h) > 2 and np.cross(h[-2] - h[-3], h[-1] - h[-3]) <= 0:
             h.pop(-2)
-            # https://stackoverflow.com/questions/22156646/homework-cross-product-of-3-points-in-2d-space
-            # p1, p2, p3 = hull[-3:] #  cross_product = np.cross(p2 - p1, p3 - p1)
 
     h.append(h[0])  # add first point to close the polygon
     return np.array(h)
@@ -46,7 +40,6 @@ def convex_hull(pts):
 
 def polygon_area(contour):
     """ Area of the polygon formed by given vertices (shoelace formula) """
-    # https://stackoverflow.com/questions/24467972/calculate-area-of-polygon-given-x-y-coordinates
     n = len(contour)  # of corners
     area = 0.0
     for i in range(n):
@@ -58,41 +51,28 @@ def polygon_area(contour):
 
 
 def euclidean(p1, p2):
-    # Euclidean distance is the L2 norm: numpy.linalg.norm(a-b)
-    # https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
+    # Euclidean distance is the L2 norm
     return np.linalg.norm(p2 - p1)
 
 
 def euclidean_all(data_points):
-    # https://stackoverflow.com/questions/13590484/calculating-euclidean-distance-between-consecutive-points-of-an-array-with-numpy
     # compute the deltas from vectorized points
     d = np.diff(data_points, axis=0)
-    # np.hypot to compute the lengths:
+    # np.hypot to compute the lengths
     return np.hypot(d[:, 0], d[:, 1])
 
 
 def get_perimeter(data_points):
     # contour perimeter, or arc length
-    return np.sum(euclidean_all(data_points))  # (a, b) for a, b in zip(data_points[:-1], data_points[1:])])
+    return np.sum(euclidean_all(data_points))
 
 
 def get_curvature(points):  # p1,p2,p3):
-    # #https://stackoverflow.com/questions/41144224/calculate-curvature-for-3-points-x-y
-
     # Calculating length of all three sides
     sides = [euclidean(*p_) for p_ in combinations(points, 2)]
-    # len_side_1 = np.linalg.norm(p2 - p1)
-    # len_side_2 = np.linalg.norm(p3 - p2)
-    # len_side_3 = np.linalg.norm(p3 - p1)
-
-    # Calculating area using Herons formula
-    #     sp = (len_side_1 + len_side_2 + len_side_3) / 2  # semiperimeter
-    #    area = math.sqrt(sp * (sp - len_side_1) * (sp - len_side_2) * (sp - len_side_3))
-
     area = polygon_area(points)
 
-    # Calculating curvature using Menger curvature formula
-    curvature = (4 * area) / np.prod(sides)  # (len_side_1 * len_side_2 * len_side_3)
+    curvature = (4 * area) / np.prod(sides)
 
     return curvature, area
 
@@ -106,7 +86,4 @@ def perpendicular_distance(pt, start, end):
     # easier than first calculating delta y or delta x since we don't need to make theta-based distinction of axes etc etc
     num = np.linalg.norm(np.cross(b, a))  # cross-product of vectors = magnitude
     den = np.linalg.norm(b)
-    # if pos > 140:
-    #    print(f"{pos}: {num}/{den}, {num/den}")
     return num / den
-

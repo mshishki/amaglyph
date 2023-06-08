@@ -49,13 +49,13 @@ def flatten_curve(control_points, steps: int = 25):
     """ Reconstruct Bezier curve from control points for a specified number of segments """
     t_vals = [i * (1 / steps) for i in range(steps + 1)]
     pts = [point_on_curve(control_points, t) for t in t_vals]
-    return np.asarray(pts)  # TODO add points based on flatness
+    return np.asarray(pts)
 
 
 def from_polynomials(control_points, t):
     """ Evaluation of a curve point at t, this time using polynomial representation.
      Less numerically stable than Casteljau. """
-    order = len(control_points)
+    order = len(control_points)-1
     # create monomial basis
     P = monomial(t, order)
 
@@ -69,8 +69,6 @@ def from_polynomials(control_points, t):
 
 
 if __name__ == "__main__":
-    # pth, props = svgp.parse_svg("test_assets/TEST_CURVE2.svg") # 'M 0.08430203,20.022515 C 13.326388,-9.2997562 28.319917,1.5821534 30.961649,4.4126518'
-
     cp = np.asarray([[0.08166278, 20.258437], [13.326388, -9.2997562], [28.319917, 1.5821534], [30.961649, 4.4126518]])
 
     single_point = de_casteljau(cp, 0.5)

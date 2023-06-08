@@ -1,5 +1,6 @@
 import geometry as g
 import numpy as np
+from benchmark import timeit
 
 
 def rdp(data_points, alpha=1.0):
@@ -66,7 +67,7 @@ if __name__ == '__main__':
     from svg import SVGDocument
     from svgpath import lower_precision
 
-    vector_image = SVGDocument("test_assets/a_rough_cp.svg")
+    vector_image = SVGDocument("examples/a.svg")
     path_data = vector_image.get_path()
     path = path_data.rearrange()
     path = lower_precision(path, 5)
@@ -76,7 +77,6 @@ if __name__ == '__main__':
     for p in path:
         optimized.append(rdp(p, 1))
         optimized2.append(visvalingam(p))
-        #print("lengths:", len(p), len(optimized[-1]), len(optimized2[-1]))
 
     from matplotlib import pyplot as plt
 
@@ -98,8 +98,8 @@ if __name__ == '__main__':
         ax[1].plot(p[:, 0], p[:, 1], linestyle='-', linewidth=2, color="cornflowerblue")  # steelblue")
         clr = "white" if i_ in path_data.holes else "skyblue"
         ax[1].fill(p[:, 0], p[:, 1], color=clr)
-        ax[1].plot(v[:, 0], v[:, 1], linestyle='-.', linewidth=1, marker="x", color="blue", \
-                   markeredgecolor="midnightblue", markerfacecolor="blue", markersize=5)
+        ax[1].plot(v[:, 0], v[:, 1], linestyle='-.', linewidth=1, marker="x", color="midnightblue", \
+                   markeredgecolor="midnightblue", markerfacecolor="midnightblue", markersize=5)
 
     fig.suptitle('Line simplification: Results', fontsize=30)
     ax[0].set_title(f'{sum([len(o) for o in optimized])} pts')
